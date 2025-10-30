@@ -2,20 +2,14 @@ name: 🔥 FiveM Status Monitor
 
 on:
   schedule:
-    # يشغل كل دقيقة
-    - cron: '*/1 * * * *'
-  
-  # يشغل عند التحديثات اليدوية
+    - cron: '*/1 * * * *'  # كل دقيقة
   workflow_dispatch:
-  
-  # يشغل عند تحديث الكود
   push:
     branches: [ main ]
 
 jobs:
   monitor:
     runs-on: ubuntu-latest
-    
     steps:
     - name: 📥 تحميل الكود
       uses: actions/checkout@v3
@@ -26,13 +20,9 @@ jobs:
         python-version: '3.9'
         
     - name: 📦 تثبيت المتطلبات
-      run: |
-        pip install -r requirements.txt
+      run: pip install -r requirements.txt
         
     - name: 🚀 تشغيل المراقبة
       env:
         WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
-      run: python fivem_monitor.py
-      
-    - name: ✅ إنهاء العملية
-      run: echo "تم إرسال التحديث بنجاح"
+      run: python 009Status.py
