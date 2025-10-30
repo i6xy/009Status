@@ -26,6 +26,7 @@ jobs:
       env:
         DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
         DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
+        WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
       run: python 009Status.py
       
     - name: ✅ إنهاء العملية
