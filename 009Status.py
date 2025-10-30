@@ -1,71 +1,66 @@
 import os
 import requests
 from datetime import datetime
-import json
+import time
+
+# متغير عالمي لحفظ رسالة ID
+LAST_MESSAGE_ID = None
 
 def get_fivem_status():
-    """
-    جلب حالة FiveM - هنا تحتاج تعديل الكود حسب مصدر البيانات الفعلي
-    """
+    """جلب حالة FiveM مع البيانات الجديدة"""
     try:
-        # 🔄 استبدل هذا الجزء بالكود الحقيقي لجلب البيانات
-        # هذا مثال للبيانات اللي في الصورة
         status_data = {
             "Cfx Status": {
-                "status": "█", 
-                "description": "إحالة التاريخ أم",
-                "emoji": "🟢"
+                "status": "<:online:795669431044145192>", 
+                "description": "حالة الفايف ام"
             },
             "CnL": {
-                "status": "█", 
-                "description": "النقطق من الذهب عند الاتصال بالصورة",
-                "emoji": "🟢"
+                "status": "<:online:795669431044145192>", 
+                "description": "التحقق من اللاعب عند الاتصال بالسيرفر"
             },
             "Policy": {
-                "status": "█", 
-                "description": "الاتصال الصورية بصورة قلباء", 
-                "emoji": "🟢"
+                "status": "<:online:795669431044145192>", 
+                "description": "اتصال السيرفرات بسيرفرات فايف إم"
             },
             "Keymaster": {
-                "status": "█", 
-                "description": "النقطق من الأيمن في",
-                "emoji": "🟢"
+                "status": "<:online:795669431044145192>", 
+                "description": "التحقق من الايسن كي"
             },
             "Server List": {
-                "status": "█", 
-                "description": "إعرض قائمة الصورية المتصلة",
-                "emoji": "🟢"
+                "status": "<:online:795669431044145192>", 
+                "description": "عرض قائمة السيرفرات المتصلة"
             },
             "License Status": {
-                "status": "█", 
-                "description": "نظام الدرس",
-                "emoji": "🟢"
+                "status": "<:online:795669431044145192>", 
+                "description": "نظام الرخص"
             },
-            "Last Update": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "Last Update": f"<t:{int(time.time())}:R>",
             "Total Requests": "343781"
         }
         return status_data
     except Exception as e:
-        print(f"❌ خطأ في جلب البيانات: {e}")
+        print(f"❌ خطأ: {e}")
         return None
 
 def create_discord_message(status_data):
-    """إنشاء رسالة ديسكورد"""
+    """إنشاء رسالة ديسكورد بنفس تنسيق الصورة"""
     if not status_data:
         return None
     
+    # حساب الوقت منذ آخر تحديث
+    current_time = int(time.time())
+    
     embed = {
         "title": "🔥 FireM Status - فئة القضاء",
-        "color": 0x00ff00,
-        "thumbnail": {"url": "https://i.imgur.com/7VZ7S6y.png"},
+        "color": 0x00ff00,  # اللون الأخضر
         "fields": [],
         "timestamp": datetime.now().isoformat(),
         "footer": {
-            "text": f"🔄 Total Requests: {status_data.get('Total Requests', 'N/A')}"
+            "text": f"Total Requests {status_data.get('Total Requests', 'N/A')}"
         }
     }
     
-    # إضافة الحقول الرئيسية
+    # إضافة الحقول الرئيسية بشكل عمودي
     components = [
         ("Cfx Status", "Cfx Status"),
         ("CnL", "CnL"),
@@ -79,51 +74,87 @@ def create_discord_message(status_data):
         if key in status_data:
             data = status_data[key]
             embed["fields"].append({
-                "name": f"{data.get('emoji', '⚪')} {name}",
-                "value": f"**الحالة:** {data['status']}\n**الوصف:** {data['description']}",
-                "inline": True
+                "name": f"**{name}:**",
+                "value": f"Status {data['status']}\nDescription: {data['description']}",
+                "inline": False
             })
     
     # إضافة آخر تحديث
     embed["fields"].append({
-        "name": "🕐 آخر تحديث",
-        "value": f"**{status_data.get('Last Update', 'غير معروف')}**",
+        "name": "**Last Update:**",
+        "value": status_data.get("Last Update", "غير معروف"),
+        "inline": False
+    })
+    
+    # إضافة الأزرار (غير قابلة للضغط)
+    embed["fields"].append({
+        "name": "**Cfx Status**",
+        "value": "🟢 License Status\n🟢 Keymaster",
         "inline": False
     })
     
     return {"embeds": [embed]}
 
-def send_webhook(webhook_url, message_data):
-    """إرسال الويبهوك"""
+def send_or_edit_webhook(webhook_url, message_data, message_id=None):
+    """إرسال رسالة جديدة أو تعديل الرسالة السابقة"""
     try:
-        response = requests.post(
-            webhook_url,
-            json=message_data,
-            headers={'Content-Type': 'application/json'},
-            timeout=10
-        )
+        if message_id:
+            # تعديل الرسالة السابقة
+            edit_url = f"{webhook_url}/messages/{message_id}"
+            response = requests.patch(edit_url, json=message_data, timeout=10)
+        else:
+            # إرسال رسالة جديدة
+            response = requests.post(webhook_url, json=message_data, timeout=10)
         
         if response.status_code in [200, 204]:
-            print("✅ تم إرسال التحديث بنجاح!")
-            return True
+            if message_id:
+                print("✅ تم تحديث الرسالة بنجاح!")
+            else:
+                print("✅ تم إرسال الرسالة بنجاح!")
+            
+            # إذا كانت استجابة جديدة، احفظ الـ message ID
+            if not message_id and response.status_code == 200:
+                response_data = response.json()
+                return response_data.get('id')
+            return message_id
+            
         else:
-            print(f"❌ فشل الإرسال: {response.status_code}")
-            return False
+            print(f"❌ فشل العملية: {response.status_code}")
+            return None
             
     except Exception as e:
         print(f"❌ خطأ في الإرسال: {e}")
-        return False
+        return None
+
+def load_last_message_id():
+    """تحميل آخر رسالة ID من ملف"""
+    try:
+        with open('last_message.txt', 'r') as f:
+            return f.read().strip()
+    except:
+        return None
+
+def save_last_message_id(message_id):
+    """حفظ آخر رسالة ID في ملف"""
+    try:
+        with open('last_message.txt', 'w') as f:
+            f.write(str(message_id))
+    except Exception as e:
+        print(f"❌ خطأ في حفظ الرسالة: {e}")
 
 def main():
     """الدالة الرئيسية"""
-    # الحصول على رابط الويبهوك من Secrets
     webhook_url = os.environ.get('WEBHOOK_URL')
     
     if not webhook_url:
-        print("❌ لم يتم تعيين WEBHOOK_URL في Secrets")
+        print("❌ لم يتم تعيين WEBHOOK_URL")
         return
     
     print("🚀 بدأ مراقبة حالة FiveM...")
+    
+    # جلب آخر رسالة ID
+    last_message_id = load_last_message_id()
+    print(f"📝 آخر رسالة ID: {last_message_id}")
     
     # جلب البيانات
     status_data = get_fivem_status()
@@ -133,11 +164,13 @@ def main():
         message = create_discord_message(status_data)
         
         if message:
-            # إرسال الرسالة
-            success = send_webhook(webhook_url, message)
+            # إرسال أو تعديل الرسالة
+            new_message_id = send_or_edit_webhook(webhook_url, message, last_message_id)
             
-            if success:
-                print("🎉 تمت العملية بنجاح!")
+            if new_message_id:
+                # حفظ الـ message ID الجديد
+                save_last_message_id(new_message_id)
+                print(f"💾 تم حفظ الرسالة ID: {new_message_id}")
             else:
                 print("💥 فشلت العملية")
         else:
