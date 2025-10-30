@@ -3,114 +3,46 @@ import requests
 from datetime import datetime
 import random
 
-# التوكن من Environment Variables
 BOT_TOKEN = os.environ.get('DISCORD_BOT_TOKEN')
 CHANNEL_ID = os.environ.get('DISCORD_CHANNEL_ID')
 
-def get_fivem_status():
-    """جلب حالة FiveM"""
-    try:
-        random_seconds = random.randint(1, 60)
-        current_time = datetime.now()
-        
-        status_data = {
-            "Last Update": f"{random_seconds} seconds ago",
-            "Total Requests": str(343823 + random.randint(1, 100)),
-            "Current Time": current_time.strftime("Today at %I:%M %p")
-        }
-        return status_data
-    except Exception as e:
-        print(f"❌ خطأ: {e}")
-        return None
-
-def create_discord_embed(status_data):
-    """إنشاء رسالة إمبدد"""
-    embed = {
-        "title": "🔥 FiveM Status - الملفات",
-        "color": 0x00ff00,
-        "fields": [
-            {
-                "name": "**Cfx Status:**",
-                "value": f"Status █\nDescription: حالة الفايف ام",
-                "inline": False
-            },
-            {
-                "name": "**Last Update:**",
-                "value": status_data["Last Update"],
-                "inline": False
-            }
-        ],
-        "footer": {
-            "text": f"Total Requests {status_data['Total Requests']} • {status_data['Current Time']}"
-        }
-    }
-    return embed
-
-def get_last_message():
-    """جلب آخر رسالة من البوت"""
-    if not BOT_TOKEN or not CHANNEL_ID:
-        return None
-        
-    try:
-        url = f"https://discord.com/api/v10/channels/{CHANNEL_ID}/messages?limit=5"
-        headers = {"Authorization": f"Bot {BOT_TOKEN}"}
-        response = requests.get(url, headers=headers, timeout=10)
-        
-        if response.status_code == 200:
-            messages = response.json()
-            for msg in messages:
-                if msg['author']['bot']:
-                    return msg['id']
-        return None
-    except:
-        return None
-
-def send_bot_message(embed_data, message_id=None):
-    """إرسال أو تعديل رسالة البوت"""
-    if not BOT_TOKEN or not CHANNEL_ID:
-        print("❌ لم يتم تعيين التوكن أو رقم الروم")
-        return False
-        
-    try:
-        headers = {
-            "Authorization": f"Bot {BOT_TOKEN}",
-            "Content-Type": "application/json"
-        }
-        
-        data = {
-            "embeds": [embed_data]
-        }
-        
-        if message_id:
-            url = f"https://discord.com/api/v10/channels/{CHANNEL_ID}/messages/{message_id}"
-            response = requests.patch(url, json=data, headers=headers, timeout=10)
-        else:
-            url = f"https://discord.com/api/v10/channels/{CHANNEL_ID}/messages"
-            response = requests.post(url, json=data, headers=headers, timeout=10)
-        
-        return response.status_code == 200
-    except:
-        return False
-
 def main():
-    """الدالة الرئيسية"""
+    print("🚀 بدأ التشغيل...")
+    print(f"البوت: {'✅' if BOT_TOKEN else '❌'}")
+    print(f"الروم: {'✅' if CHANNEL_ID else '❌'}")
+    
     if not BOT_TOKEN:
-        print("❌ لم يتم تعيين DISCORD_BOT_TOKEN في Secrets")
+        print("❌ لم يتم تعيين التوكن")
         return
         
     if not CHANNEL_ID:
-        print("❌ لم يتم تعيين DISCORD_CHANNEL_ID في Secrets")
+        print("❌ لم يتم تعيين الروم")
         return
     
-    print("🚀 بدأ المراقبة...")
+    # بيانات بسيطة للتجربة
+    embed = {
+        "title": "🔥 اختبار البوت",
+        "description": "هذا اختبار أولي",
+        "color": 0x00ff00
+    }
     
-    last_message_id = get_last_message()
-    status_data = get_fivem_status()
+    headers = {
+        "Authorization": f"Bot {BOT_TOKEN}",
+        "Content-Type": "application/json"
+    }
     
-    if status_data:
-        embed = create_discord_embed(status_data)
-        success = send_bot_message(embed, last_message_id)
-        print("✅ تم التحديث" if success else "❌ فشل التحديث")
+    try:
+        url = f"https://discord.com/api/v10/channels/{CHANNEL_ID}/messages"
+        response = requests.post(url, json={"embeds": [embed]}, headers=headers, timeout=10)
+        
+        if response.status_code == 200:
+            print("✅ تم إرسال الرسالة بنجاح!")
+        else:
+            print(f"❌ فشل الإرسال: {response.status_code}")
+            print(f"الرد: {response.text}")
+            
+    except Exception as e:
+        print(f"❌ خطأ: {e}")
 
 if __name__ == "__main__":
     main()
