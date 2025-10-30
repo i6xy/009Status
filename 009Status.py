@@ -3,12 +3,7 @@ import requests
 from datetime import datetime
 import time
 
-# إعدادات البوت
-BOT_TOKEN = os.environ.get('DISCORD_BOT_TOKEN')
-CHANNEL_ID = os.environ.get('DISCORD_CHANNEL_ID')
-
-# متغيرات النظام
-LAST_MESSAGE_ID = None
+# متغير عالمي للوقت
 start_time = time.time()
 
 def get_fivem_status():
@@ -51,157 +46,133 @@ def get_fivem_status():
                 "description": "نظام الرخص"
             },
             "Last Update": f"{elapsed_seconds} seconds ago",
-            "Total Requests": str(343781 + elapsed_seconds),
-            "Current Time": datetime.now().strftime("Today at %I:%M %p")
+            "Total Requests": str(343781 + elapsed_seconds)
         }
         return status_data
     except Exception as e:
         print(f"❌ خطأ: {e}")
         return None
 
-def get_last_bot_message():
-    """جلب آخر رسالة للبوت في الروم"""
-    global LAST_MESSAGE_ID
+def create_discord_message(status_data):
+    """إنشاء رسالة ديسكورد بنفس تنسيق الصورة"""
+    if not status_data:
+        return None
     
-    try:
-        url = f"https://discord.com/api/v10/channels/{CHANNEL_ID}/messages?limit=10"
-        headers = {"Authorization": f"Bot {BOT_TOKEN}"}
-        response = requests.get(url, headers=headers, timeout=10)
-        
-        if response.status_code == 200:
-            messages = response.json()
-            for msg in messages:
-                if msg['author']['bot'] and any('Status' in str(field.get('name', '')) for field in msg.get('embeds', [{}])[0].get('fields', [])):
-                    LAST_MESSAGE_ID = msg['id']
-                    print(f"📝 وجدت الرسالة السابقة: {LAST_MESSAGE_ID}")
-                    return LAST_MESSAGE_ID
-        print("❌ لم أجد رسالة سابقة")
-        return None
-    except Exception as e:
-        print(f"❌ خطأ في جلب الرسائل: {e}")
-        return None
-
-def create_discord_embed(status_data):
-    """إنشاء رسالة إمبدد"""
     embed = {
-        "title": "🔥 FiveM Status - الملفات",
+        "title": "🔥 FireM Status - فئة القضاء",
         "color": 0x00ff00,
-        "fields": [
-            {
-                "name": "**Cfx Status:**",
-                "value": f"Status {status_data['Cfx Status']['status']}\nDescription: {status_data['Cfx Status']['description']}",
-                "inline": False
-            },
-            {
-                "name": "**CnL:**", 
-                "value": f"Status {status_data['CnL']['status']}\nDescription: {status_data['CnL']['description']}", 
-                "inline": False
-            },
-            {
-                "name": "**Policy:**",
-                "value": f"Status {status_data['Policy']['status']}\nDescription: {status_data['Policy']['description']}",
-                "inline": False
-            },
-            {
-                "name": "**Keymaster:**", 
-                "value": f"Status {status_data['Keymaster']['status']}\nDescription: {status_data['Keymaster']['description']}",
-                "inline": False
-            },
-            {
-                "name": "**Server List:**",
-                "value": f"Status {status_data['Server List']['status']}\nDescription: {status_data['Server List']['description']}", 
-                "inline": False
-            },
-            {
-                "name": "**License Status:**",
-                "value": f"Status {status_data['License Status']['status']}\nDescription: {status_data['License Status']['description']}",
-                "inline": False
-            },
-            {
-                "name": "**Last Update:**",
-                "value": status_data["Last Update"],
-                "inline": False
-            }
-        ],
+        "fields": [],
+        "timestamp": datetime.now().isoformat(),
         "footer": {
-            "text": f"Total Requests {status_data['Total Requests']} • {status_data['Current Time']}"
-        },
-        "timestamp": datetime.now().isoformat()
+            "text": f"Total Requests {status_data.get('Total Requests', 'N/A')}"
+        }
     }
-    return embed
+    
+    components = [
+        ("Cfx Status", "Cfx Status"),
+        ("CnL", "CnL"),
+        ("Policy", "Policy"), 
+        ("Keymaster", "Keymaster"),
+        ("Server List", "Server List"),
+        ("License Status", "License Status")
+    ]
+    
+    for key, name in components:
+        if key in status_data:
+            data = status_data[key]
+            embed["fields"].append({
+                "name": f"**{name}:**",
+                "value": f"Status {data['status']}\nDescription: {data['description']}",
+                "inline": False
+            })
+    
+    embed["fields"].append({
+        "name": "**Last Update:**",
+        "value": status_data.get("Last Update", "غير معروف"),
+        "inline": False
+    })
+    
+    embed["fields"].append({
+        "name": "**Cfx Status**",
+        "value": "🟢 License Status\n🟢 Keymaster",
+        "inline": False
+    })
+    
+    return {"embeds": [embed]}
 
-def send_or_edit_message(embed_data):
+def send_or_edit_webhook(webhook_url, message_data, message_id=None):
     """إرسال رسالة جديدة أو تعديل الرسالة السابقة"""
-    global LAST_MESSAGE_ID
-    
-    headers = {
-        "Authorization": f"Bot {BOT_TOKEN}",
-        "Content-Type": "application/json"
-    }
-    
-    data = {"embeds": [embed_data]}
-    
     try:
-        # إذا عندنا رسالة سابقة، جرب نعدلها
-        if LAST_MESSAGE_ID:
-            url = f"https://discord.com/api/v10/channels/{CHANNEL_ID}/messages/{LAST_MESSAGE_ID}"
-            response = requests.patch(url, json=data, headers=headers, timeout=10)
-            
-            if response.status_code == 200:
-                print("✅ تم تعديل الرسالة بنجاح!")
-                return True
-            else:
-                print(f"❌ فشل التعديل: {response.status_code} - سيتم إنشاء رسالة جديدة")
-                LAST_MESSAGE_ID = None
-        
-        # إرسال رسالة جديدة
-        url = f"https://discord.com/api/v10/channels/{CHANNEL_ID}/messages"
-        response = requests.post(url, json=data, headers=headers, timeout=10)
-        
-        if response.status_code == 200:
-            response_data = response.json()
-            LAST_MESSAGE_ID = response_data['id']
-            print(f"✅ تم إرسال رسالة جديدة: {LAST_MESSAGE_ID}")
-            return True
+        if message_id:
+            edit_url = f"{webhook_url}/messages/{message_id}"
+            response = requests.patch(edit_url, json=message_data, timeout=10)
         else:
-            print(f"❌ فشل الإرسال: {response.status_code}")
-            return False
+            response = requests.post(webhook_url, json=message_data, timeout=10)
+        
+        if response.status_code in [200, 204]:
+            if message_id:
+                print("✅ تم تحديث الرسالة بنجاح!")
+            else:
+                print("✅ تم إرسال الرسالة بنجاح!")
             
+            if not message_id and response.status_code == 200:
+                response_data = response.json()
+                return response_data.get('id')
+            return message_id
+        else:
+            print(f"❌ فشل العملية: {response.status_code}")
+            return None
     except Exception as e:
         print(f"❌ خطأ في الإرسال: {e}")
-        return False
+        return None
+
+def load_last_message_id():
+    """تحميل آخر رسالة ID من ملف"""
+    try:
+        with open('last_message.txt', 'r') as f:
+            return f.read().strip()
+    except:
+        return None
+
+def save_last_message_id(message_id):
+    """حفظ آخر رسالة ID في ملف"""
+    try:
+        with open('last_message.txt', 'w') as f:
+            f.write(str(message_id))
+    except Exception as e:
+        print(f"❌ خطأ في حفظ الرسالة: {e}")
 
 def main():
     """الدالة الرئيسية"""
-    print("🚀 بدأ مراقبة FiveM...")
+    webhook_url = os.environ.get('WEBHOOK_URL')
     
-    if not BOT_TOKEN:
-        print("❌ لم يتم تعيين DISCORD_BOT_TOKEN")
-        return
-        
-    if not CHANNEL_ID:
-        print("❌ لم يتم تعيين DISCORD_CHANNEL_ID")
+    if not webhook_url:
+        print("❌ لم يتم تعيين WEBHOOK_URL")
         return
     
-    # جلب آخر رسالة للبوت
-    get_last_bot_message()
+    print("🚀 بدأ مراقبة حالة FiveM...")
     
-    # جلب البيانات
+    last_message_id = load_last_message_id()
+    print(f"📝 آخر رسالة ID: {last_message_id}")
+    
     status_data = get_fivem_status()
     
     if status_data:
-        # إنشاء الرسالة
-        embed = create_discord_embed(status_data)
+        message = create_discord_message(status_data)
         
-        # إرسال أو تعديل الرسالة
-        success = send_or_edit_message(embed)
-        
-        if success:
-            print(f"✅ تم التحديث: {status_data['Last Update']}")
+        if message:
+            new_message_id = send_or_edit_webhook(webhook_url, message, last_message_id)
+            
+            if new_message_id:
+                save_last_message_id(new_message_id)
+                print(f"💾 تم حفظ الرسالة ID: {new_message_id}")
+                print(f"⏰ الوقت الحالي: {status_data['Last Update']}")
+            else:
+                print("💥 فشلت العملية")
         else:
-            print("💥 فشل التحديث")
+            print("❌ فشل في إنشاء الرسالة")
     else:
-        print("❌ فشل في جلب البيانات")
+        print("❌ فشل في جلب بيانات الحالة")
 
 if __name__ == "__main__":
     main()
