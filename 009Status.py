@@ -5,10 +5,14 @@ import time
 
 # متغير عالمي لحفظ رسالة ID
 LAST_MESSAGE_ID = None
+START_TIME = time.time()
 
 def get_fivem_status():
     """جلب حالة FiveM مع البيانات الجديدة"""
     try:
+        # حساب الوقت المنقضي
+        elapsed_seconds = int(time.time() - START_TIME)
+        
         status_data = {
             "Cfx Status": {
                 "status": "█", 
@@ -34,8 +38,9 @@ def get_fivem_status():
                 "status": "█", 
                 "description": "نظام الرخص"
             },
-            "Last Update": f"{int(time.time() - time.time())} seconds ago",
-            "Total Requests": "343781"
+            "Last Update": f"{elapsed_seconds} seconds ago",
+            "Total Requests": "343781",
+            "Current Time": datetime.now().strftime("Today at %I:%M %p")
         }
         return status_data
     except Exception as e:
@@ -47,17 +52,14 @@ def create_discord_message(status_data):
     if not status_data:
         return None
     
-    # حساب الوقت منذ آخر تحديث
-    update_time = "0 seconds ago"  # يمكنك تعديل هذا ليعكس الوقت الحقيقي
-    
     embed = {
         "title": "🔥 FiveM Status - الملفات",
         "color": 0x00ff00,  # اللون الأخضر
-        "fields": [],
-        "timestamp": datetime.now().isoformat()
+        "description": "",  # مسافات كما في الصورة
+        "fields": []
     }
     
-    # إضافة الحقول الرئيسية بشكل عمودي
+    # إضافة الحقول الرئيسية بنفس المسافات كما في الصورة
     components = [
         ("Cfx Status", "Cfx Status"),
         ("CnL", "CnL"),
@@ -79,30 +81,34 @@ def create_discord_message(status_data):
     # إضافة آخر تحديث
     embed["fields"].append({
         "name": "**Last Update :**",
-        "value": update_time,
+        "value": status_data.get("Last Update", "0 seconds ago"),
         "inline": False
     })
     
-    # إضافة الأزرار (غير قابلة للضغط) - كحقول عادية
+    # إضافة الأزرار (كحقول منفصلة)
     embed["fields"].append({
         "name": "**Cfx Status**",
         "value": "█ License Status\n█ Keymaster",
         "inline": False
     })
     
-    # إضافة الفوتر
+    # إضافة الفوتر بنفس التنسيق
     embed["footer"] = {
-        "text": "Total Requests 343781 • Today at 12:10 AM"
+        "text": f"Total Requests {status_data.get('Total Requests', '343781')} • {status_data.get('Current Time', 'Today at 12:10 AM')}"
     }
     
-    return {"embeds": [embed]}
+    return {"embeds": [embed], "components": []}  # components فارغة لمنع الأزرار القابلة للضغط
 
 def send_or_edit_webhook(webhook_url, message_data, message_id=None):
     """إرسال رسالة جديدة أو تعديل الرسالة السابقة"""
     try:
         if message_id:
-            # تعديل الرسالة السابقة
-            edit_url = f"https://discord.com/api/webhooks/{webhook_url.split('/')[-2]}/{webhook_url.split('/')[-1]}/messages/{message_id}"
+            # تعديل الرسالة السابقة - الطريقة الصحيحة
+            webhook_parts = webhook_url.split('/')
+            webhook_id = webhook_parts[-2]
+            webhook_token = webhook_parts[-1]
+            
+            edit_url = f"https://discord.com/api/v10/webhooks/{webhook_id}/{webhook_token}/messages/{message_id}"
             response = requests.patch(edit_url, json=message_data, timeout=10)
         else:
             # إرسال رسالة جديدة
