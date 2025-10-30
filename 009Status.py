@@ -1,36 +1,71 @@
 import os
 import requests
 from datetime import datetime
+import json
 
 def get_fivem_status():
+    """
+    جلب حالة FiveM - هنا تحتاج تعديل الكود حسب مصدر البيانات الفعلي
+    """
     try:
+        # 🔄 استبدل هذا الجزء بالكود الحقيقي لجلب البيانات
+        # هذا مثال للبيانات اللي في الصورة
         status_data = {
-            "Cfx Status": {"status": "█", "description": "إحالة التاريخ أم", "emoji": "🟢"},
-            "CnL": {"status": "█", "description": "النقطق من الذهب عند الاتصال بالصورة", "emoji": "🟢"},
-            "Policy": {"status": "█", "description": "الاتصال الصورية بصورة قلباء", "emoji": "🟢"},
-            "Keymaster": {"status": "█", "description": "النقطق من الأيمن في", "emoji": "🟢"},
-            "Server List": {"status": "█", "description": "إعرض قائمة الصورية المتصلة", "emoji": "🟢"},
-            "License Status": {"status": "█", "description": "نظام الدرس", "emoji": "🟢"},
+            "Cfx Status": {
+                "status": "█", 
+                "description": "إحالة التاريخ أم",
+                "emoji": "🟢"
+            },
+            "CnL": {
+                "status": "█", 
+                "description": "النقطق من الذهب عند الاتصال بالصورة",
+                "emoji": "🟢"
+            },
+            "Policy": {
+                "status": "█", 
+                "description": "الاتصال الصورية بصورة قلباء", 
+                "emoji": "🟢"
+            },
+            "Keymaster": {
+                "status": "█", 
+                "description": "النقطق من الأيمن في",
+                "emoji": "🟢"
+            },
+            "Server List": {
+                "status": "█", 
+                "description": "إعرض قائمة الصورية المتصلة",
+                "emoji": "🟢"
+            },
+            "License Status": {
+                "status": "█", 
+                "description": "نظام الدرس",
+                "emoji": "🟢"
+            },
             "Last Update": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "Total Requests": "343781"
         }
         return status_data
     except Exception as e:
-        print(f"❌ خطأ: {e}")
+        print(f"❌ خطأ في جلب البيانات: {e}")
         return None
 
 def create_discord_message(status_data):
+    """إنشاء رسالة ديسكورد"""
     if not status_data:
         return None
     
     embed = {
         "title": "🔥 FireM Status - فئة القضاء",
         "color": 0x00ff00,
+        "thumbnail": {"url": "https://i.imgur.com/7VZ7S6y.png"},
         "fields": [],
         "timestamp": datetime.now().isoformat(),
-        "footer": {"text": f"🔄 Total Requests: {status_data.get('Total Requests', 'N/A')}"}
+        "footer": {
+            "text": f"🔄 Total Requests: {status_data.get('Total Requests', 'N/A')}"
+        }
     }
     
+    # إضافة الحقول الرئيسية
     components = [
         ("Cfx Status", "Cfx Status"),
         ("CnL", "CnL"),
@@ -49,6 +84,7 @@ def create_discord_message(status_data):
                 "inline": True
             })
     
+    # إضافة آخر تحديث
     embed["fields"].append({
         "name": "🕐 آخر تحديث",
         "value": f"**{status_data.get('Last Update', 'غير معروف')}**",
@@ -57,24 +93,57 @@ def create_discord_message(status_data):
     
     return {"embeds": [embed]}
 
+def send_webhook(webhook_url, message_data):
+    """إرسال الويبهوك"""
+    try:
+        response = requests.post(
+            webhook_url,
+            json=message_data,
+            headers={'Content-Type': 'application/json'},
+            timeout=10
+        )
+        
+        if response.status_code in [200, 204]:
+            print("✅ تم إرسال التحديث بنجاح!")
+            return True
+        else:
+            print(f"❌ فشل الإرسال: {response.status_code}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ خطأ في الإرسال: {e}")
+        return False
+
 def main():
+    """الدالة الرئيسية"""
+    # الحصول على رابط الويبهوك من Secrets
     webhook_url = os.environ.get('WEBHOOK_URL')
     
     if not webhook_url:
-        print("❌ لم يتم تعيين WEBHOOK_URL")
+        print("❌ لم يتم تعيين WEBHOOK_URL في Secrets")
         return
     
     print("🚀 بدأ مراقبة حالة FiveM...")
+    
+    # جلب البيانات
     status_data = get_fivem_status()
     
     if status_data:
+        # إنشاء الرسالة
         message = create_discord_message(status_data)
+        
         if message:
-            response = requests.post(webhook_url, json=message, timeout=10)
-            if response.status_code in [200, 204]:
-                print("✅ تم الإرسال بنجاح!")
+            # إرسال الرسالة
+            success = send_webhook(webhook_url, message)
+            
+            if success:
+                print("🎉 تمت العملية بنجاح!")
             else:
-                print(f"❌ فشل الإرسال: {response.status_code}")
+                print("💥 فشلت العملية")
+        else:
+            print("❌ فشل في إنشاء الرسالة")
+    else:
+        print("❌ فشل في جلب بيانات الحالة")
 
 if __name__ == "__main__":
     main()
