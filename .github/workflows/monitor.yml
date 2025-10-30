@@ -25,7 +25,8 @@ jobs:
         
     - name: 🚀 تشغيل المراقبة
       env:
-        WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
+        DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+        DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
       run: python 009Status.py
       
     - name: ✅ إنهاء العملية
