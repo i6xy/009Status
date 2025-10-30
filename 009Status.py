@@ -3,15 +3,18 @@ import requests
 from datetime import datetime
 import time
 
-# متغير عالمي لحفظ رسالة ID
-LAST_MESSAGE_ID = None
-START_TIME = time.time()
+# متغيرات التوقيت
+last_update_time = time.time()
 
 def get_fivem_status():
     """جلب حالة FiveM مع البيانات الجديدة"""
+    global last_update_time
+    
     try:
-        # حساب الوقت المنقضي
-        elapsed_seconds = int(time.time() - START_TIME)
+        # حساب الوقت المنقضي منذ آخر تحديث
+        current_time = time.time()
+        elapsed_seconds = int(current_time - last_update_time)
+        last_update_time = current_time
         
         status_data = {
             "Cfx Status": {
@@ -39,7 +42,7 @@ def get_fivem_status():
                 "description": "نظام الرخص"
             },
             "Last Update": f"{elapsed_seconds} seconds ago",
-            "Total Requests": "343781",
+            "Total Requests": "343823",
             "Current Time": datetime.now().strftime("Today at %I:%M %p")
         }
         return status_data
@@ -52,58 +55,91 @@ def create_discord_message(status_data):
     if not status_data:
         return None
     
-    embed = {
-        "title": "🔥 FiveM Status - الملفات",
-        "color": 0x00ff00,  # اللون الأخضر
-        "description": "",  # مسافات كما في الصورة
-        "fields": []
-    }
-    
-    # إضافة الحقول الرئيسية بنفس المسافات كما في الصورة
+    # إنشاء الأزرار كما في الصورة
     components = [
-        ("Cfx Status", "Cfx Status"),
-        ("CnL", "CnL"),
-        ("Policy", "Policy"), 
-        ("Keymaster", "Keymaster"),
-        ("Server List", "Server List"),
-        ("License Status", "License Status")
+        {
+            "type": 1,
+            "components": [
+                {
+                    "type": 2,
+                    "label": "Cfx Status",
+                    "style": 3,  # أخضر
+                    "custom_id": "cfx_status",
+                    "disabled": True  # غير قابل للضغط
+                },
+                {
+                    "type": 2,
+                    "label": "License Status",
+                    "style": 3,  # أخضر
+                    "custom_id": "license_status", 
+                    "disabled": True  # غير قابل للضغط
+                },
+                {
+                    "type": 2,
+                    "label": "Keymaster",
+                    "style": 3,  # أخضر
+                    "custom_id": "keymaster",
+                    "disabled": True  # غير قابل للضغط
+                }
+            ]
+        }
     ]
     
-    for key, name in components:
-        if key in status_data:
-            data = status_data[key]
-            embed["fields"].append({
-                "name": f"**{name} :**",
-                "value": f"Status {data['status']}\nDescription: {data['description']}",
+    embed = {
+        "title": "🔥 FiveM Status - الملفات",
+        "color": 0x00ff00,
+        "fields": [
+            {
+                "name": "**Cfx Status :**",
+                "value": f"Status {status_data['Cfx Status']['status']}\nDescription: {status_data['Cfx Status']['description']}",
                 "inline": False
-            })
-    
-    # إضافة آخر تحديث
-    embed["fields"].append({
-        "name": "**Last Update :**",
-        "value": status_data.get("Last Update", "0 seconds ago"),
-        "inline": False
-    })
-    
-    # إضافة الأزرار (كحقول منفصلة)
-    embed["fields"].append({
-        "name": "**Cfx Status**",
-        "value": "█ License Status\n█ Keymaster",
-        "inline": False
-    })
-    
-    # إضافة الفوتر بنفس التنسيق
-    embed["footer"] = {
-        "text": f"Total Requests {status_data.get('Total Requests', '343781')} • {status_data.get('Current Time', 'Today at 12:10 AM')}"
+            },
+            {
+                "name": "**CnL :**", 
+                "value": f"Status {status_data['CnL']['status']}\nDescription: {status_data['CnL']['description']}",
+                "inline": False
+            },
+            {
+                "name": "**Policy :**",
+                "value": f"Status {status_data['Policy']['status']}\nDescription: {status_data['Policy']['description']}",
+                "inline": False
+            },
+            {
+                "name": "**Keymaster :**",
+                "value": f"Status {status_data['Keymaster']['status']}\nDescription: {status_data['Keymaster']['description']}",
+                "inline": False
+            },
+            {
+                "name": "**Server List :**",
+                "value": f"Status {status_data['Server List']['status']}\nDescription: {status_data['Server List']['description']}",
+                "inline": False
+            },
+            {
+                "name": "**License Status :**", 
+                "value": f"Status {status_data['License Status']['status']}\nDescription: {status_data['License Status']['description']}",
+                "inline": False
+            },
+            {
+                "name": "**Last Update :**",
+                "value": status_data["Last Update"],
+                "inline": False
+            }
+        ],
+        "footer": {
+            "text": f"Total Requests {status_data['Total Requests']} • {status_data['Current Time']}"
+        }
     }
     
-    return {"embeds": [embed], "components": []}  # components فارغة لمنع الأزرار القابلة للضغط
+    return {
+        "embeds": [embed],
+        "components": components
+    }
 
 def send_or_edit_webhook(webhook_url, message_data, message_id=None):
     """إرسال رسالة جديدة أو تعديل الرسالة السابقة"""
     try:
         if message_id:
-            # تعديل الرسالة السابقة - الطريقة الصحيحة
+            # تعديل الرسالة السابقة
             webhook_parts = webhook_url.split('/')
             webhook_id = webhook_parts[-2]
             webhook_token = webhook_parts[-1]
@@ -120,14 +156,12 @@ def send_or_edit_webhook(webhook_url, message_data, message_id=None):
             else:
                 print("✅ تم إرسال الرسالة بنجاح!")
             
-            # إذا كانت استجابة جديدة، احفظ الـ message ID
             if not message_id and response.status_code == 200:
                 response_data = response.json()
                 return response_data.get('id')
             return message_id
-            
         else:
-            print(f"❌ فشل العملية: {response.status_code} - {response.text}")
+            print(f"❌ فشل العملية: {response.status_code}")
             return None
             
     except Exception as e:
@@ -179,9 +213,9 @@ def main():
                 # حفظ الـ message ID الجديد
                 save_last_message_id(new_message_id)
                 print(f"💾 تم حفظ الرسالة ID: {new_message_id}")
+                print(f"🕐 الوقت: {status_data['Last Update']}")
             else:
                 print("💥 فشلت العملية - سيتم إنشاء رسالة جديدة في المرة القادمة")
-                # إذا فشل التعديل، احذف الـ ID القديم
                 save_last_message_id(None)
         else:
             print("❌ فشل في إنشاء الرسالة")
