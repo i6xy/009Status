@@ -11,30 +11,30 @@ def get_fivem_status():
     try:
         status_data = {
             "Cfx Status": {
-                "status": "<:online:795669431044145192>", 
+                "status": "█", 
                 "description": "حالة الفايف ام"
             },
             "CnL": {
-                "status": "<:online:795669431044145192>", 
+                "status": "█", 
                 "description": "التحقق من اللاعب عند الاتصال بالسيرفر"
             },
             "Policy": {
-                "status": "<:online:795669431044145192>", 
+                "status": "█", 
                 "description": "اتصال السيرفرات بسيرفرات فايف إم"
             },
             "Keymaster": {
-                "status": "<:online:795669431044145192>", 
+                "status": "█", 
                 "description": "التحقق من الايسن كي"
             },
             "Server List": {
-                "status": "<:online:795669431044145192>", 
+                "status": "█", 
                 "description": "عرض قائمة السيرفرات المتصلة"
             },
             "License Status": {
-                "status": "<:online:795669431044145192>", 
+                "status": "█", 
                 "description": "نظام الرخص"
             },
-            "Last Update": f"<t:{int(time.time())}:R>",
+            "Last Update": f"{int(time.time() - time.time())} seconds ago",
             "Total Requests": "343781"
         }
         return status_data
@@ -48,16 +48,13 @@ def create_discord_message(status_data):
         return None
     
     # حساب الوقت منذ آخر تحديث
-    current_time = int(time.time())
+    update_time = "0 seconds ago"  # يمكنك تعديل هذا ليعكس الوقت الحقيقي
     
     embed = {
-        "title": "🔥 FireM Status - فئة القضاء",
+        "title": "🔥 FiveM Status - الملفات",
         "color": 0x00ff00,  # اللون الأخضر
         "fields": [],
-        "timestamp": datetime.now().isoformat(),
-        "footer": {
-            "text": f"Total Requests {status_data.get('Total Requests', 'N/A')}"
-        }
+        "timestamp": datetime.now().isoformat()
     }
     
     # إضافة الحقول الرئيسية بشكل عمودي
@@ -74,24 +71,29 @@ def create_discord_message(status_data):
         if key in status_data:
             data = status_data[key]
             embed["fields"].append({
-                "name": f"**{name}:**",
+                "name": f"**{name} :**",
                 "value": f"Status {data['status']}\nDescription: {data['description']}",
                 "inline": False
             })
     
     # إضافة آخر تحديث
     embed["fields"].append({
-        "name": "**Last Update:**",
-        "value": status_data.get("Last Update", "غير معروف"),
+        "name": "**Last Update :**",
+        "value": update_time,
         "inline": False
     })
     
-    # إضافة الأزرار (غير قابلة للضغط)
+    # إضافة الأزرار (غير قابلة للضغط) - كحقول عادية
     embed["fields"].append({
         "name": "**Cfx Status**",
-        "value": "🟢 License Status\n🟢 Keymaster",
+        "value": "█ License Status\n█ Keymaster",
         "inline": False
     })
+    
+    # إضافة الفوتر
+    embed["footer"] = {
+        "text": "Total Requests 343781 • Today at 12:10 AM"
+    }
     
     return {"embeds": [embed]}
 
@@ -100,7 +102,7 @@ def send_or_edit_webhook(webhook_url, message_data, message_id=None):
     try:
         if message_id:
             # تعديل الرسالة السابقة
-            edit_url = f"{webhook_url}/messages/{message_id}"
+            edit_url = f"https://discord.com/api/webhooks/{webhook_url.split('/')[-2]}/{webhook_url.split('/')[-1]}/messages/{message_id}"
             response = requests.patch(edit_url, json=message_data, timeout=10)
         else:
             # إرسال رسالة جديدة
@@ -119,7 +121,7 @@ def send_or_edit_webhook(webhook_url, message_data, message_id=None):
             return message_id
             
         else:
-            print(f"❌ فشل العملية: {response.status_code}")
+            print(f"❌ فشل العملية: {response.status_code} - {response.text}")
             return None
             
     except Exception as e:
@@ -172,7 +174,9 @@ def main():
                 save_last_message_id(new_message_id)
                 print(f"💾 تم حفظ الرسالة ID: {new_message_id}")
             else:
-                print("💥 فشلت العملية")
+                print("💥 فشلت العملية - سيتم إنشاء رسالة جديدة في المرة القادمة")
+                # إذا فشل التعديل، احذف الـ ID القديم
+                save_last_message_id(None)
         else:
             print("❌ فشل في إنشاء الرسالة")
     else:
