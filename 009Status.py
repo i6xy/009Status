@@ -75,6 +75,7 @@ def send_or_edit_message(embed_data):
             if response.status_code == 200:
                 return True
             else:
+                print(f"❌ فشل التعديل: {response.status_code}")
                 LAST_MESSAGE_ID = None
         
         url = f"https://discord.com/api/v10/channels/{CHANNEL_ID}/messages"
@@ -82,8 +83,11 @@ def send_or_edit_message(embed_data):
         if response.status_code == 200:
             LAST_MESSAGE_ID = response.json()['id']
             return True
+        else:
+            print(f"❌ فشل الإرسال: {response.status_code}")
         return False
-    except:
+    except Exception as e:
+        print(f"❌ خطأ في الإرسال: {e}")
         return False
 
 def main():
@@ -97,7 +101,19 @@ def main():
     if status_data:
         embed = create_discord_embed(status_data)
         success = send_or_edit_message(embed)
-        print("✅ تم التحديث" if success else "❌ فشل التحديث")
+        current_seconds = int(time.time()) % 60
+        print(f"⏰ {current_seconds}s - ✅ تم التحديث" if success else f"⏰ {current_seconds}s - ❌ فشل التحديث")
+
+def run_continuous():
+    """تشغيل البوت بشكل مستمر كل ثانية"""
+    print("🚀 بدأ تشغيل البوت... (Ctrl+C لإيقاف)")
+    
+    try:
+        while True:
+            main()
+            time.sleep(1)  # انتظر ثانية واحدة قبل التحديث التالي
+    except KeyboardInterrupt:
+        print("\n🛑 تم إيقاف البوت")
 
 if __name__ == "__main__":
-    main()
+    run_continuous()
