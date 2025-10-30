@@ -1,41 +1,21 @@
 import os
 import requests
 from datetime import datetime
-import time
+import random
+
+# التوكن من Environment Variables
+BOT_TOKEN = os.environ.get('DISCORD_BOT_TOKEN')
+CHANNEL_ID = os.environ.get('DISCORD_CHANNEL_ID')
 
 def get_fivem_status():
     """جلب حالة FiveM"""
     try:
-        # الوقت الحالي للتحديث
+        random_seconds = random.randint(1, 60)
         current_time = datetime.now()
         
         status_data = {
-            "Cfx Status": {
-                "status": "█", 
-                "description": "حالة الفايف ام"
-            },
-            "CnL": {
-                "status": "█", 
-                "description": "التحقق من اللاعب عند الاتصال بالسيرفر"
-            },
-            "Policy": {
-                "status": "█", 
-                "description": "اتصال السيرفرات بسيرفرات فايف إم"
-            },
-            "Keymaster": {
-                "status": "█", 
-                "description": "التحقق من الايسن كي"
-            },
-            "Server List": {
-                "status": "█", 
-                "description": "عرض قائمة السيرفرات المتصلة"
-            },
-            "License Status": {
-                "status": "█", 
-                "description": "نظام الرخص"
-            },
-            "Last Update": f"{current_time.strftime('%H:%M:%S')}",
-            "Total Requests": "343823",
+            "Last Update": f"{random_seconds} seconds ago",
+            "Total Requests": str(343823 + random.randint(1, 100)),
             "Current Time": current_time.strftime("Today at %I:%M %p")
         }
         return status_data
@@ -43,41 +23,8 @@ def get_fivem_status():
         print(f"❌ خطأ: {e}")
         return None
 
-def create_discord_message(status_data):
-    """إنشاء رسالة ديسكورد"""
-    if not status_data:
-        return None
-    
-    # إنشاء الأزرار
-    components = [
-        {
-            "type": 1,
-            "components": [
-                {
-                    "type": 2,
-                    "label": "Cfx Status",
-                    "style": 3,
-                    "custom_id": "cfx_status",
-                    "disabled": True
-                },
-                {
-                    "type": 2,
-                    "label": "License Status", 
-                    "style": 3,
-                    "custom_id": "license_status",
-                    "disabled": True
-                },
-                {
-                    "type": 2,
-                    "label": "Keymaster",
-                    "style": 3,
-                    "custom_id": "keymaster",
-                    "disabled": True
-                }
-            ]
-        }
-    ]
-    
+def create_discord_embed(status_data):
+    """إنشاء رسالة إمبدد"""
     embed = {
         "title": "🔥 FiveM Status - الملفات",
         "color": 0x00ff00,
@@ -85,31 +32,6 @@ def create_discord_message(status_data):
             {
                 "name": "**Cfx Status:**",
                 "value": f"Status █\nDescription: حالة الفايف ام",
-                "inline": False
-            },
-            {
-                "name": "**CnL:**", 
-                "value": f"Status █\nDescription: التحقق من اللاعب عند الاتصال بالسيرفر", 
-                "inline": False
-            },
-            {
-                "name": "**Policy:**",
-                "value": f"Status █\nDescription: اتصال السيرفرات بسيرفرات فايف إم",
-                "inline": False
-            },
-            {
-                "name": "**Keymaster:**", 
-                "value": f"Status █\nDescription: التحقق من الايسن كي",
-                "inline": False
-            },
-            {
-                "name": "**Server List:**",
-                "value": f"Status █\nDescription: عرض قائمة السيرفرات المتصلة", 
-                "inline": False
-            },
-            {
-                "name": "**License Status:**",
-                "value": f"Status █\nDescription: نظام الرخص",
                 "inline": False
             },
             {
@@ -122,57 +44,73 @@ def create_discord_message(status_data):
             "text": f"Total Requests {status_data['Total Requests']} • {status_data['Current Time']}"
         }
     }
-    
-    return {
-        "embeds": [embed],
-        "components": components
-    }
+    return embed
 
-def send_webhook(webhook_url, message_data):
-    """إرسال رسالة ويب هوك"""
-    try:
-        response = requests.post(webhook_url, json=message_data, timeout=10)
+def get_last_message():
+    """جلب آخر رسالة من البوت"""
+    if not BOT_TOKEN or not CHANNEL_ID:
+        return None
         
-        if response.status_code in [200, 204]:
-            print("✅ تم إرسال الرسالة بنجاح!")
-            return True
+    try:
+        url = f"https://discord.com/api/v10/channels/{CHANNEL_ID}/messages?limit=5"
+        headers = {"Authorization": f"Bot {BOT_TOKEN}"}
+        response = requests.get(url, headers=headers, timeout=10)
+        
+        if response.status_code == 200:
+            messages = response.json()
+            for msg in messages:
+                if msg['author']['bot']:
+                    return msg['id']
+        return None
+    except:
+        return None
+
+def send_bot_message(embed_data, message_id=None):
+    """إرسال أو تعديل رسالة البوت"""
+    if not BOT_TOKEN or not CHANNEL_ID:
+        print("❌ لم يتم تعيين التوكن أو رقم الروم")
+        return False
+        
+    try:
+        headers = {
+            "Authorization": f"Bot {BOT_TOKEN}",
+            "Content-Type": "application/json"
+        }
+        
+        data = {
+            "embeds": [embed_data]
+        }
+        
+        if message_id:
+            url = f"https://discord.com/api/v10/channels/{CHANNEL_ID}/messages/{message_id}"
+            response = requests.patch(url, json=data, headers=headers, timeout=10)
         else:
-            print(f"❌ فشل الإرسال: {response.status_code}")
-            return False
-            
-    except Exception as e:
-        print(f"❌ خطأ في الإرسال: {e}")
+            url = f"https://discord.com/api/v10/channels/{CHANNEL_ID}/messages"
+            response = requests.post(url, json=data, headers=headers, timeout=10)
+        
+        return response.status_code == 200
+    except:
         return False
 
 def main():
     """الدالة الرئيسية"""
-    webhook_url = os.environ.get('WEBHOOK_URL')
-    
-    if not webhook_url:
-        print("❌ لم يتم تعيين WEBHOOK_URL")
+    if not BOT_TOKEN:
+        print("❌ لم يتم تعيين DISCORD_BOT_TOKEN في Secrets")
+        return
+        
+    if not CHANNEL_ID:
+        print("❌ لم يتم تعيين DISCORD_CHANNEL_ID في Secrets")
         return
     
-    print("🚀 بدأ مراقبة حالة FiveM...")
+    print("🚀 بدأ المراقبة...")
     
-    # جلب البيانات
+    last_message_id = get_last_message()
     status_data = get_fivem_status()
     
     if status_data:
-        # إنشاء الرسالة
-        message = create_discord_message(status_data)
-        
-        if message:
-            # إرسال الرسالة
-            success = send_webhook(webhook_url, message)
-            
-            if success:
-                print(f"✅ تم الإرسال في: {status_data['Last Update']}")
-            else:
-                print("💥 فشل إرسال الرسالة")
-        else:
-            print("❌ فشل في إنشاء الرسالة")
-    else:
-        print("❌ فشل في جلب بيانات الحالة")
+        embed = create_discord_embed(status_data)
+        success = send_bot_message(embed, last_message_id)
+        print("✅ تم التحديث" if success else "❌ فشل التحديث")
 
 if __name__ == "__main__":
     main()
