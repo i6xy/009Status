@@ -2,7 +2,7 @@ name: 🔥 FiveM Status Monitor
 
 on:
   schedule:
-    - cron: '*/1 * * * *'
+    - cron: '*/1 * * * *'  # كل دقيقة
   workflow_dispatch:
   push:
     branches: [ main ]
@@ -10,6 +10,7 @@ on:
 jobs:
   monitor:
     runs-on: ubuntu-latest
+    
     steps:
     - name: 📥 تحميل الكود
       uses: actions/checkout@v3
@@ -26,3 +27,6 @@ jobs:
       env:
         WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
       run: python 009Status.py
+      
+    - name: ✅ إنهاء العملية
+      run: echo "تم إرسال التحديث بنجاح"
