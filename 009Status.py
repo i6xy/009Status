@@ -14,32 +14,32 @@ def get_fivem_status():
             "Cfx Status": {
                 "status": "█", 
                 "description": "إحالة التاريخ أم",
-                "emoji": "🟢" if "█" in "█" else "🔴"
+                "emoji": "🟢"
             },
             "CnL": {
                 "status": "█", 
                 "description": "النقطق من الذهب عند الاتصال بالصورة",
-                "emoji": "🟢" if "█" in "█" else "🔴"
+                "emoji": "🟢"
             },
             "Policy": {
                 "status": "█", 
                 "description": "الاتصال الصورية بصورة قلباء", 
-                "emoji": "🟢" if "█" in "█" else "🔴"
+                "emoji": "🟢"
             },
             "Keymaster": {
                 "status": "█", 
                 "description": "النقطق من الأيمن في",
-                "emoji": "🟢" if "█" in "█" else "🔴"
+                "emoji": "🟢"
             },
             "Server List": {
                 "status": "█", 
                 "description": "إعرض قائمة الصورية المتصلة",
-                "emoji": "🟢" if "█" in "█" else "🔴"
+                "emoji": "🟢"
             },
             "License Status": {
                 "status": "█", 
                 "description": "نظام الدرس",
-                "emoji": "🟢" if "█" in "█" else "🔴"
+                "emoji": "🟢"
             },
             "Last Update": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "Total Requests": "343781"
