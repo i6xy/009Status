@@ -29,7 +29,6 @@ def get_fivem_status():
         print(f"❌ خطأ: {e}")
         return None
 
-# باقي الكود يبقى كما هو...
 def get_last_bot_message():
     global LAST_MESSAGE_ID
     try:
