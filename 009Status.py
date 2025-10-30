@@ -7,14 +7,23 @@ import time
 BOT_TOKEN = os.environ.get('DISCORD_BOT_TOKEN')
 CHANNEL_ID = os.environ.get('DISCORD_CHANNEL_ID')
 
-# متغير لحفظ آخر رسالة
+# متغيرات الوقت
+start_time = time.time()
 LAST_MESSAGE_ID = None
 
 def get_fivem_status():
-    """جلب حالة FiveM"""
+    """جلب حالة FiveM مع وقت حقيقي متحرك"""
+    global start_time
+    
     try:
-        random_seconds = random.randint(1, 60)
-        current_time = datetime.now()
+        # حساب الوقت المنقضي منذ بداية التشغيل
+        current_time = time.time()
+        elapsed_seconds = int(current_time - start_time)
+        
+        # إذا تعدى 60 ثانية، نعيد الضبط
+        if elapsed_seconds > 60:
+            start_time = current_time
+            elapsed_seconds = 0
         
         status_data = {
             "Cfx Status": "█",
@@ -23,9 +32,9 @@ def get_fivem_status():
             "Keymaster": "█",
             "Server List": "█",
             "License Status": "█",
-            "Last Update": f"{random_seconds} seconds ago",
-            "Total Requests": str(343823 + random.randint(1, 100)),
-            "Current Time": current_time.strftime("Today at %I:%M %p")
+            "Last Update": f"{elapsed_seconds} seconds ago",
+            "Total Requests": str(343823 + elapsed_seconds),
+            "Current Time": datetime.now().strftime("Today at %I:%M %p")
         }
         return status_data
     except Exception as e:
@@ -44,7 +53,6 @@ def get_last_bot_message():
         if response.status_code == 200:
             messages = response.json()
             for msg in messages:
-                # البحث عن رسالة البوت التي تحتوي على FiveM Status
                 if msg['author']['bot'] and any('Status' in str(field.get('name', '')) for field in msg.get('embeds', [{}])[0].get('fields', [])):
                     LAST_MESSAGE_ID = msg['id']
                     print(f"📝 وجدت الرسالة السابقة: {LAST_MESSAGE_ID}")
@@ -126,7 +134,7 @@ def send_or_edit_message(embed_data):
                 return True
             else:
                 print(f"❌ فشل التعديل: {response.status_code} - سيتم إنشاء رسالة جديدة")
-                LAST_MESSAGE_ID = None  # نجرب ننشئ رسالة جديدة
+                LAST_MESSAGE_ID = None
         
         # إرسال رسالة جديدة
         url = f"https://discord.com/api/v10/channels/{CHANNEL_ID}/messages"
