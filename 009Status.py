@@ -25,4 +25,4 @@ jobs:
     - name: 🚀 تشغيل المراقبة
       env:
         WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
-      run: python fivem_monitor.py
+      run: python 009Status.py
