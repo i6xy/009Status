@@ -3,8 +3,8 @@ import requests
 from datetime import datetime
 import time
 
-BOT_TOKEN = os.environ.get('DISCORD_BOT_TOKEN')
-CHANNEL_ID = os.environ.get('DISCORD_CHANNEL_ID')
+BOT_TOKEN = os.environ['DISCORD_BOT_TOKEN']
+CHANNEL_ID = os.environ['DISCORD_CHANNEL_ID']
 LAST_MESSAGE_ID = None
 
 def get_last_bot_message():
@@ -17,38 +17,29 @@ def get_last_bot_message():
         if response.status_code == 200:
             messages = response.json()
             for msg in messages:
-                if (msg['author']['bot'] and 
-                    msg.get('embeds') and 
-                    len(msg['embeds']) > 0 and
-                    'FiveM Status' in msg['embeds'][0].get('title', '')):
-                    
+                if (msg['author']['bot'] and msg.get('embeds')):
                     LAST_MESSAGE_ID = msg['id']
-                    print(f"📝 Found previous message: {LAST_MESSAGE_ID}")
                     return LAST_MESSAGE_ID
         return None
-    except Exception as e:
-        print(f"❌ Error finding message: {e}")
+    except:
         return None
 
 def get_fivem_status():
-    """جلب حالة FiveM مع وقت من 1 إلى 60 ثم يعيد"""
     try:
-        # حساب الثواني من 1 إلى 60 ثم يعيد
-        current_seconds = (int(time.time()) % 60) + 1  # +1 علشان يبدأ من 1 ليس 0
-        
+        current_seconds = (int(time.time()) % 60) + 1
         status_data = {
-            "Cfx Status": {"status": "<:online:795669431044145192>", "description": "حالة الفايف ام"},
-            "CnL": {"status": "<:online:795669431044145192>", "description": "التحقق من اللاعب عند الاتصال بالسيرفر"},
-            "Policy": {"status": "<:online:795669431044145192>", "description": "اتصال السيرفرات بسيرفرات فايف إم"},
-            "Keymaster": {"status": "<:online:795669431044145192>", "description": "التحقق من الايسن كي"},
-            "Server List": {"status": "<:online:795669431044145192>", "description": "عرض قائمة السيرفرات المتصلة"},
-            "License Status": {"status": "<:online:795669431044145192>", "description": "نظام الرخص"},
+            "Cfx Status": {"status": "🟢", "description": "حالة الفايف ام"},
+            "CnL": {"status": "🟢", "description": "التحقق من اللاعب"},
+            "Policy": {"status": "🟢", "description": "اتصال السيرفرات"},
+            "Keymaster": {"status": "🟢", "description": "التحقق من الايسن كي"},
+            "Server List": {"status": "🟢", "description": "قائمة السيرفرات"},
+            "License Status": {"status": "🟢", "description": "نظام الرخص"},
             "Last Update": f"{current_seconds} seconds ago",
             "Total Requests": "343781"
         }
         return status_data
     except Exception as e:
-        print(f"❌ خطأ: {e}")
+        print(f"Error: {e}")
         return None
 
 def create_discord_embed(status_data):
@@ -78,38 +69,31 @@ def send_or_edit_message(embed_data):
             url = f"https://discord.com/api/v10/channels/{CHANNEL_ID}/messages/{LAST_MESSAGE_ID}"
             response = requests.patch(url, json=data, headers=headers, timeout=10)
             if response.status_code == 200:
-                print("✏️ Message edited successfully")
                 return True
             else:
-                print(f"❌ Edit failed: {response.status_code}")
                 LAST_MESSAGE_ID = None
         
         url = f"https://discord.com/api/v10/channels/{CHANNEL_ID}/messages"
         response = requests.post(url, json=data, headers=headers, timeout=10)
         if response.status_code == 200:
             LAST_MESSAGE_ID = response.json()['id']
-            print("📨 New message sent")
             return True
         return False
-    except Exception as e:
-        print(f"❌ Send error: {e}")
+    except:
         return False
 
 def main():
-    if not BOT_TOKEN or not CHANNEL_ID:
-        print("❌ Missing token or channel ID")
-        return
-    
     if LAST_MESSAGE_ID is None:
         get_last_bot_message()
     
     status_data = get_fivem_status()
-    
     if status_data:
         embed = create_discord_embed(status_data)
-        success = send_or_edit_message(embed)
-        current_seconds = int(time.time()) % 60
-        print(f"⏰ {current_seconds}s - {'✅ Success' if success else '❌ Failed'}")
+        send_or_edit_message(embed)
+        print(f"✅ Updated: {status_data['Last Update']}")
 
 if __name__ == "__main__":
-    main()
+    print("🚀 Bot started 24/7 on Render.com")
+    while True:
+        main()
+        time.sleep(1)
