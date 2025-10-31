@@ -3,8 +3,8 @@ import requests
 from datetime import datetime
 import time
 
-BOT_TOKEN = os.environ['DISCORD_BOT_TOKEN']
-CHANNEL_ID = os.environ['DISCORD_CHANNEL_ID']
+BOT_TOKEN = os.environ.get('DISCORD_BOT_TOKEN')
+CHANNEL_ID = os.environ.get('DISCORD_CHANNEL_ID')
 LAST_MESSAGE_ID = None
 
 def get_last_bot_message():
